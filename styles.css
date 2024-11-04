@@ -1,0 +1,96 @@
+:root {
+    --background-color: #343541;
+    --text-color: #ffffff;
+    --button-color: #5e60ce;
+    --button-hover-color: #4a4ce1;
+    --message-background: #444654;
+    --status-message-color: #4caf50;
+}
+
+body {
+    background-color: var(--background-color);
+    color: var(--text-color);
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    text-align: center;
+}
+
+h1 {
+    margin-bottom: 20px;
+}
+
+form {
+    margin-bottom: 20px;
+}
+
+.chat-message, .dynamic-message {
+    background-color: var(--message-background);
+    padding: 15px;
+    border-radius: 10px;
+    max-width: 300px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    margin-bottom: 20px;
+    animation: fadeIn 1s ease-out;
+}
+
+/* Estilos para los mensajes de estado de carga */
+.status-message {
+    color: var(--status-message-color);
+    font-weight: bold;
+    margin-top: 10px;
+}
+
+/* Cuadro de respuesta centrado */
+.estado-del-arte {
+    background-color: var(--message-background);
+    color: var(--text-color);
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    max-width: 600px;
+    margin: 20px auto;
+    text-align: left;
+    line-height: 1.6;
+    font-size: 16px;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+button {
+    background-color: var(--button-color);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: var(--button-hover-color);
+}
+
+/* Personalización del input file */
+input[type="file"] {
+    display: none;
+}
+
+.custom-file-upload {
+    background-color: var(--button-color);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    display: inline-block;
+}
+
+.custom-file-upload:hover {
+    background-color: var(--button-hover-color);
+}

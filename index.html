@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en"> 
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generar Estado del Arte con ChatGPT</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="message" class="chat-message" aria-live="polite"></div>
+    <h1>Generar Estado del Arte con ChatGPT</h1>
+    <div id="instruction" class="dynamic-message" aria-live="polite"></div>
+
+    <form id="upload-form">
+        <label for="pdf-file" class="custom-file-upload" aria-label="Seleccionar PDF">
+            Seleccionar PDF
+        </label>
+        <input type="file" id="pdf-file" name="file" accept="application/pdf" required>
+        <span id="file-name">No se ha seleccionado ningún archivo</span>
+        <button type="submit" name="submit">Subir y Generar Estado del Arte</button>
+    </form>
+
+    <div id="status-message" class="status-message"></div> <!-- Mensaje de estado -->
+    <div id="estado-del-arte" class="estado-del-arte"></div> <!-- Contenedor de respuesta -->
+
+    <script src="script.js"></script>
+</body>
+</html>
