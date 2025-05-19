@@ -3,14 +3,16 @@ const pdfInput = document.getElementById('pdf-file');
 const estadoDelArteDiv = document.getElementById('estado-del-arte');
 const fileNameDisplay = document.getElementById('file-name');
 const statusMessage = document.getElementById('status-message');
+const copiarBoton = document.getElementById('copiar-texto');
+const mensajeCopiado = document.getElementById('mensaje-copiado');
+const downloadBtn = document.getElementById('btnDescargar');
 
-// Mensajes de bienvenida e instrucción
+// Mensajes dinámicos
 const message = document.getElementById('message');
 const instruction = document.getElementById('instruction');
 const welcomeMessage = "¿En qué puedo ayudarte?";
 const instructionMessage = "Adjuntar el artículo científico del cual se desea obtener el estado del arte.";
 
-// Tipeo de mensaje y bienvenida
 let i = 0;
 function typeMessage() {
     if (i < welcomeMessage.length) {
@@ -21,7 +23,6 @@ function typeMessage() {
         typeInstruction();
     }
 }
-
 function typeInstruction() {
     let j = 0;
     function type() {
@@ -33,10 +34,8 @@ function typeInstruction() {
     }
     type();
 }
-
 window.onload = typeMessage;
 
-// Mostrar el nombre del archivo seleccionado
 pdfInput.addEventListener('change', function () {
     if (pdfInput.files.length > 0) {
         fileNameDisplay.textContent = pdfInput.files[0].name;
@@ -45,15 +44,14 @@ pdfInput.addEventListener('change', function () {
     }
 });
 
-// Configura la URL de la API para el entorno de producción
 const apiUrl = 'https://jofech20-github-io.onrender.com/upload_pdf';
 
-// Manejo del formulario para subir el PDF
 form.addEventListener('submit', async function (e) {
     e.preventDefault();
 
-    estadoDelArteDiv.textContent = ''; // Limpiar el contenido anterior
-    statusMessage.textContent = 'Procesando...'; // Mensaje de carga
+    estadoDelArteDiv.textContent = '';
+    statusMessage.textContent = 'Procesando...';
+    downloadBtn.style.display = 'none';
 
     const formData = new FormData();
     formData.append('file', pdfInput.files[0]);
@@ -63,17 +61,41 @@ form.addEventListener('submit', async function (e) {
             method: 'POST',
             body: formData
         });
-        
+
         const data = await response.json();
 
         if (data.error) {
             estadoDelArteDiv.textContent = `Error: ${data.error}`;
+            statusMessage.textContent = '';
         } else {
             estadoDelArteDiv.textContent = data.estado_del_arte || 'No se generó ningún estado del arte.';
-            statusMessage.textContent = 'Listo'; // Mensaje de éxito
+            statusMessage.textContent = 'Listo';
+
+            // Mostrar botón de descarga
+            if (data.word_download_url) {
+                downloadBtn.style.display = 'block';
+                downloadBtn.onclick = () => {
+                    window.location.href = data.word_download_url;
+                };
+            }
         }
     } catch (error) {
         estadoDelArteDiv.textContent = 'Error al procesar la solicitud. Intenta nuevamente.';
-        statusMessage.textContent = ''; // Limpiar mensaje de estado si hay error
+        statusMessage.textContent = '';
     }
 });
+
+copiarBoton.addEventListener('click', function () {
+    const texto = estadoDelArteDiv.textContent;
+    if (texto) {
+        navigator.clipboard.writeText(texto).then(() => {
+            mensajeCopiado.style.display = 'inline';
+            setTimeout(() => {
+                mensajeCopiado.style.display = 'none';
+            }, 2000);
+        }).catch(err => {
+            console.error('Error al copiar el texto: ', err);
+        });
+    }
+});
+
