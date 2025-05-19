@@ -1,28 +1,46 @@
 <!DOCTYPE html>
-<html lang="en"> 
+<html lang="es"> 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Generar Estado del Arte con ChatGPT</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-    <div id="message" class="chat-message" aria-live="polite"></div>
-    <h1>Generar Estado del Arte con ChatGPT</h1>
-    <div id="instruction" class="dynamic-message" aria-live="polite"></div>
+    <header>
+        <h1>Generar Estado del Arte con ChatGPT</h1>
+        <div id="message" class="chat-message" aria-live="polite"></div>
+        <div id="instruction" class="dynamic-message" aria-live="polite"></div>
+    </header>
 
-    <form id="upload-form">
-        <label for="pdf-file" class="custom-file-upload" aria-label="Seleccionar PDF">
-            Seleccionar PDF
-        </label>
-        <input type="file" id="pdf-file" name="file" accept="application/pdf" required>
-        <span id="file-name">No se ha seleccionado ningún archivo</span>
-        <button type="submit" name="submit">Subir y Generar Estado del Arte</button>
-    </form>
+    <main>
+        <form id="upload-form">
+            <label for="pdf-file" class="custom-file-upload" aria-label="Seleccionar PDF">Adjuntar</label>
+            <input type="file" id="pdf-file" name="file" accept="application/pdf" required />
+            <span id="file-name">No se ha seleccionado ningún archivo</span>
+            <button type="submit" name="submit">Generar</button>
+        </form>
 
-    <div id="status-message" class="status-message"></div> <!-- Mensaje de estado -->
-    <div id="estado-del-arte" class="estado-del-arte"></div> <!-- Contenedor de respuesta -->
+        <div id="status-message" class="status-message" role="status"></div>
+
+        <section id="estado-del-arte" class="estado-del-arte" aria-label="Resultado generado"></section>
+
+        <button id="copiar-texto" class="boton-copiar">Copiar texto</button>
+        <span id="mensaje-copiado" style="display:none;">Texto copiado!</span>
+
+        <!-- Eliminar este div para evitar duplicado -->
+        <!-- <div id="resultado"></div> -->
+
+        <button id="btnDescargar" style="display: none;">Descargar en Word</button>
+    </main>
+
+    <footer>
+        <p style="text-align: center; font-size: small; margin-top: 2em;">
+            © 2025 - Sistema de Generación de Estado del Arte
+        </p>
+    </footer>
 
     <script src="script.js"></script>
 </body>
 </html>
+
