@@ -1,63 +1,80 @@
 import os
 import openai
-from flask import Flask, request, jsonify, send_from_directory
-from flask_cors import CORS  # Importa CORS
+from flask import Flask, request, jsonify, send_file
+from flask_cors import CORS
 from werkzeug.utils import secure_filename
 import PyPDF2
+from docx import Document
+import uuid
 
 app = Flask(__name__)
-CORS(app)  # Habilita CORS para toda la aplicación
+CORS(app)  # Habilita CORS para todas las rutas
 
 UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-# Crear la carpeta de subida si no existe
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
-# Configurar extensiones permitidas y clave de API de OpenAI
 ALLOWED_EXTENSIONS = {'pdf'}
-openai.api_key = os.environ.get('OPENAI_API_KEY')  # Cambia esto por tu clave real
+openai.api_key = os.environ.get('OPENAI_API_KEY')
 
-# Función para verificar que el archivo tenga la extensión correcta
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-# Función para extraer texto de un archivo PDF
 def extract_text_from_pdf(pdf_path):
-    with open(pdf_path, 'rb') as file:
-        reader = PyPDF2.PdfReader(file)
-        text = ''
-        for page in reader.pages:
-            page_text = page.extract_text()
-            if page_text:
-                text += page_text
-    return text
-
-# Función para generar el estado del arte utilizando OpenAI
-def generate_estado_del_arte(text):
-    # Limitar el número de caracteres a 10,000 (ajusta según sea necesario)
-    max_length = 10000
-    truncated_text = text[:max_length] if len(text) > max_length else text
-    
-    # Define el mensaje de entrada
-    messages = [
-        {"role": "user", "content": f"A partir del siguiente texto de un artículo científico, genera un estado del arte:\n\n{truncated_text}"}
-    ]
     try:
-        # Utiliza el nuevo modelo
+        with open(pdf_path, 'rb') as file:
+            reader = PyPDF2.PdfReader(file)
+            text = ''
+            for page in reader.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    text += page_text
+        return text
+    except Exception as e:
+        print(f"Error al extraer texto del PDF: {e}")
+        return None
+
+def generate_estado_del_arte(text):
+    max_length = 100000
+    truncated_text = text[:max_length] if len(text) > max_length else text
+
+    prompt = f"""
+A partir del siguiente texto de un artículo científico, redacta un estado del arte dividido claramente en tres secciones con subtítulos visibles en la respuesta, para indentificar a qué parte pertenece cada respuesta. Cada sección debe ir precedida por un subtítulo en negrita (puedes usar Markdown si es necesario). Las secciones son:
+
+**Fase Inicial – Introducción contextual del tema**  
+Proporciona una introducción clara y académica sobre el tema central del artículo. Explica brevemente en qué campo científico se enmarca y por qué es relevante investigarlo actualmente. Menciona el problema general que aborda y el contexto en el que surge.
+
+**Fase Analítica – Síntesis crítica y comparativa**  
+Sintetiza las principales líneas de investigación, enfoques metodológicos o corrientes teóricas relacionadas con el tema. Describe brevemente qué aportes han hecho los autores citados, qué metodologías han utilizado y qué resultados han obtenido. Compara críticamente las posiciones, señalando convergencias, divergencias y debates entre estudios previos.
+
+**Fase Final – Identificación de vacíos y proyecciones**  
+Identifica las principales limitaciones, vacíos teóricos o áreas poco exploradas que el artículo evidencia de forma directa o indirecta. Explica por qué es necesario continuar investigando sobre este tema. Propón posibles direcciones futuras para nuevas investigaciones y destaca cómo este trabajo contribuye a cerrar alguna de esas brechas.
+
+Texto base del artículo:
+{truncated_text}
+"""
+
+    try:
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",  
-            messages=messages,
-            max_tokens=1000,
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=1500,
             temperature=0.7
         )
         return response['choices'][0]['message']['content'].strip()
     except Exception as e:
         return f"Error al generar el estado del arte: {str(e)}"
 
+def save_to_word(text, filename):
+    doc = Document()
+    for line in text.split('\n'):
+        doc.add_paragraph(line)
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    doc.save(filepath)
+    return filepath
 
-# Ruta para subir el PDF y procesarlo
 @app.route('/upload_pdf', methods=['POST'])
 def upload_pdf():
     if 'file' not in request.files:
@@ -80,15 +97,25 @@ def upload_pdf():
         
         estado_del_arte = generate_estado_del_arte(extracted_text)
         
-        return jsonify({'estado_del_arte': estado_del_arte}), 200
-    
+        # Crear nombre único para el archivo Word
+        word_filename = f"estado_arte_{uuid.uuid4().hex[:8]}.docx"
+        word_path = save_to_word(estado_del_arte, word_filename)
+
+        # Retornar estado del arte y URL de descarga
+        return jsonify({
+            'estado_del_arte': estado_del_arte,
+            'word_download_url': f"/download/{word_filename}"
+        }), 200
+
     return jsonify({'error': 'Tipo de archivo no permitido. Solo se permiten archivos PDF.'}), 400
 
-# Ruta para servir el favicon
-@app.route('/favicon.ico')
-def favicon():
-    return send_from_directory(os.path.join(app.root_path, 'static'), 'favicon.ico', mimetype='image/vnd.microsoft.icon')
+@app.route('/download/<filename>', methods=['GET'])
+def download_file(filename):
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    if os.path.exists(filepath):
+        return send_file(filepath, as_attachment=True)
+    else:
+        return jsonify({'error': 'Archivo no encontrado.'}), 404
 
-# Ejecuta la aplicación
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
