@@ -28,15 +28,20 @@ form {
     margin-bottom: 20px;
 }
 
+header {
+    text-align: center;
+}
 .chat-message, .dynamic-message {
     background-color: var(--message-background);
     padding: 15px;
     border-radius: 10px;
     max-width: 300px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    margin-bottom: 20px;
+    margin: 20px auto; /* Aquí cambió: arriba/abajo 20px, izquierda/derecha automático */
     animation: fadeIn 1s ease-out;
+    text-align: center; /* Si quieres que el texto también esté centrado */
 }
+
 
 /* Estilos para los mensajes de estado de carga */
 .status-message {
@@ -83,7 +88,7 @@ input[type="file"] {
 }
 
 .custom-file-upload {
-    background-color: var(--button-color);
+    background-color: rgba(255, 0, 0, 0.695);
     color: white;
     padding: 10px 20px;
     border-radius: 5px;
@@ -93,4 +98,20 @@ input[type="file"] {
 
 .custom-file-upload:hover {
     background-color: var(--button-hover-color);
+}
+
+
+.boton-copiar {
+    margin-top: 5px;
+    background-color: var(--button-color);
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.boton-copiar:hover {
+    background-color: var(--button-color);
 }
