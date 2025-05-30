@@ -1,5 +1,5 @@
 import os
-from openai import OpenAI
+import openai
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
@@ -8,7 +8,7 @@ from docx import Document
 import uuid
 
 app = Flask(__name__)
-CORS(app)
+CORS(app)  # Habilita CORS para todas las rutas
 
 UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -17,9 +17,7 @@ if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
 ALLOWED_EXTENSIONS = {'pdf'}
-
-# Inicializar cliente de OpenAI usando el nuevo SDK
-client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
+openai.api_key = os.environ.get('OPENAI_API_KEY')
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -43,7 +41,7 @@ def generate_estado_del_arte(text):
     truncated_text = text[:max_length] if len(text) > max_length else text
 
     prompt = f"""
-Redacta un **estado del arte** a partir del siguiente texto de un artículo científico, siguiendo **estrictamente** esta estructura, con subtítulos en negrita usando Markdown (doble asterisco `**`):
+Redacta un **estado del arte** a partir del siguiente texto de un artículo científico, siguiendo **estrictamente** esta estructura, con subtítulos:
 
 **Fase Inicial – Introducción contextual del tema**  
 (Explica brevemente el contexto general del tema del artículo.)
@@ -59,13 +57,13 @@ Texto base del artículo:
 """
 
     try:
-        response = client.chat.completions.create(
-            model="gpt-4",
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
             max_tokens=3000,
-            temperature=0.4
+            temperature=0.7
         )
-        return response.choices[0].message.content.strip()
+        return response['choices'][0]['message']['content'].strip()
     except Exception as e:
         return f"Error al generar el estado del arte: {str(e)}"
 
@@ -81,28 +79,29 @@ def save_to_word(text, filename):
 def upload_pdf():
     if 'file' not in request.files:
         return jsonify({'error': 'No se ha enviado ningún archivo'}), 400
-
+    
     file = request.files['file']
-
+    
     if file.filename == '':
         return jsonify({'error': 'No se ha seleccionado ningún archivo'}), 400
-
+    
     if file and allowed_file(file.filename):
         filename = secure_filename(file.filename)
         pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(pdf_path)
-
+        
         extracted_text = extract_text_from_pdf(pdf_path)
-
+        
         if not extracted_text:
             return jsonify({'error': 'No se pudo extraer texto del PDF.'}), 400
-
+        
         estado_del_arte = generate_estado_del_arte(extracted_text)
-
+        
         # Crear nombre único para el archivo Word
         word_filename = f"estado_arte_{uuid.uuid4().hex[:8]}.docx"
         word_path = save_to_word(estado_del_arte, word_filename)
 
+        # Retornar estado del arte y URL de descarga
         return jsonify({
             'estado_del_arte': estado_del_arte,
             'word_download_url': f"/download/{word_filename}"
