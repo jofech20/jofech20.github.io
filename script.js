@@ -68,7 +68,7 @@ form.addEventListener('submit', async function (e) {
             estadoDelArteDiv.textContent = `Error: ${data.error}`;
             statusMessage.textContent = '';
         } else {
-            estadoDelArteDiv.textContent = data.estado_del_arte || 'No se generó ningún estado del arte.';
+            estadoDelArteDiv.innerHTML = marked.parse(data.estado_del_arte || 'No se generó ningún estado del arte.');
             statusMessage.textContent = 'Listo';
 
             // Mostrar botón de descarga
