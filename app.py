@@ -41,21 +41,17 @@ def generate_estado_del_arte(text):
     truncated_text = text[:max_length] if len(text) > max_length else text
 
     prompt = f"""
-A partir del siguiente texto de un artículo científico, redacta un estado del arte dividido claramente en tres secciones con subtítulos visibles en la respuesta, para indentificar a qué parte pertenece cada respuesta. Cada sección debe ir precedida por un subtítulo en negrita (puedes usar Markdown si es necesario). Las secciones son:
+A partir del siguiente texto de un artículo científico, redacta un estado del arte dividido en tres secciones. Cada sección debe comenzar con un subtítulo en negrita utilizando Markdown (es decir, encerrado entre dos asteriscos '**'). Las secciones son:
 
-**Fase Inicial – Introducción contextual del tema**  
-Proporciona una introducción clara y académica sobre el tema central del artículo. Explica brevemente en qué campo científico se enmarca y por qué es relevante investigarlo actualmente. Menciona el problema general que aborda y el contexto en el que surge.
+**Fase Inicial – Introducción contextual del tema**
 
-**Fase Analítica – Síntesis crítica y comparativa**  
-Sintetiza las principales líneas de investigación, enfoques metodológicos o corrientes teóricas relacionadas con el tema. Describe brevemente qué aportes han hecho los autores citados, qué metodologías han utilizado y qué resultados han obtenido. Compara críticamente las posiciones, señalando convergencias, divergencias y debates entre estudios previos.
+**Fase Analítica – Síntesis crítica y comparativa**
 
-**Fase Final – Identificación de vacíos y proyecciones**  
-Identifica las principales limitaciones, vacíos teóricos o áreas poco exploradas que el artículo evidencia de forma directa o indirecta. Explica por qué es necesario continuar investigando sobre este tema. Propón posibles direcciones futuras para nuevas investigaciones y destaca cómo este trabajo contribuye a cerrar alguna de esas brechas.
+**Fase Final – Identificación de vacíos y proyecciones**
 
 Texto base del artículo:
 {truncated_text}
 """
-
     try:
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
