@@ -41,17 +41,21 @@ def generate_estado_del_arte(text):
     truncated_text = text[:max_length] if len(text) > max_length else text
 
     prompt = f"""
-A partir del siguiente texto de un artículo científico, redacta un estado del arte dividido en tres secciones. Cada sección debe comenzar con un subtítulo en negrita utilizando Markdown (es decir, encerrado entre dos asteriscos '**'). Las secciones son:
+Redacta un **estado del arte** a partir del siguiente texto de un artículo científico, siguiendo **estrictamente** esta estructura, con subtítulos en negrita usando Markdown (doble asterisco `**`):
 
-**Fase Inicial – Introducción contextual del tema**
+**Fase Inicial – Introducción contextual del tema**  
+(Explica brevemente el contexto general del tema del artículo.)
 
-**Fase Analítica – Síntesis crítica y comparativa**
+**Fase Analítica – Síntesis crítica y comparativa**  
+(Compara hallazgos, enfoques o metodologías clave en la literatura.)
 
-**Fase Final – Identificación de vacíos y proyecciones**
+**Fase Final – Identificación de vacíos y proyecciones**  
+(Señala lo que falta en la literatura y posibles líneas futuras de investigación.)
 
 Texto base del artículo:
 {truncated_text}
 """
+
     try:
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
