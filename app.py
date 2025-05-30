@@ -1,5 +1,5 @@
 import os
-import openai
+from openai import OpenAI
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
@@ -8,7 +8,7 @@ from docx import Document
 import uuid
 
 app = Flask(__name__)
-CORS(app)  # Habilita CORS para todas las rutas
+CORS(app)
 
 UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -17,7 +17,9 @@ if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
 ALLOWED_EXTENSIONS = {'pdf'}
-openai.api_key = os.environ.get('OPENAI_API_KEY')
+
+# Inicializar cliente de OpenAI usando el nuevo SDK
+client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -57,13 +59,13 @@ Texto base del artículo:
 """
 
     try:
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-4",
             messages=[{"role": "user", "content": prompt}],
             max_tokens=3000,
             temperature=0.4
         )
-        return response['choices'][0]['message']['content'].strip()
+        return response.choices[0].message.content.strip()
     except Exception as e:
         return f"Error al generar el estado del arte: {str(e)}"
 
@@ -79,29 +81,28 @@ def save_to_word(text, filename):
 def upload_pdf():
     if 'file' not in request.files:
         return jsonify({'error': 'No se ha enviado ningún archivo'}), 400
-    
+
     file = request.files['file']
-    
+
     if file.filename == '':
         return jsonify({'error': 'No se ha seleccionado ningún archivo'}), 400
-    
+
     if file and allowed_file(file.filename):
         filename = secure_filename(file.filename)
         pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(pdf_path)
-        
+
         extracted_text = extract_text_from_pdf(pdf_path)
-        
+
         if not extracted_text:
             return jsonify({'error': 'No se pudo extraer texto del PDF.'}), 400
-        
+
         estado_del_arte = generate_estado_del_arte(extracted_text)
-        
+
         # Crear nombre único para el archivo Word
         word_filename = f"estado_arte_{uuid.uuid4().hex[:8]}.docx"
         word_path = save_to_word(estado_del_arte, word_filename)
 
-        # Retornar estado del arte y URL de descarga
         return jsonify({
             'estado_del_arte': estado_del_arte,
             'word_download_url': f"/download/{word_filename}"
