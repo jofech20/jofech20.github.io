@@ -61,7 +61,7 @@ Texto base del artículo:
             model="gpt-4",
             messages=[{"role": "user", "content": prompt}],
             max_tokens=3000,
-            temperature=0.7
+            temperature=0.4
         )
         return response['choices'][0]['message']['content'].strip()
     except Exception as e:
