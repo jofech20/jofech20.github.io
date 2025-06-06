@@ -39,7 +39,7 @@ def extract_text_from_pdf(pdf_path):
         return None
 
 def generate_estado_del_arte(text):
-    max_length = 50000
+    max_length = 5000
     truncated_text = text[:max_length] if len(text) > max_length else text
 
     prompt = f"""
