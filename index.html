@@ -25,11 +25,16 @@
 
         <section id="estado-del-arte" class="estado-del-arte" aria-label="Resultado generado"></section>
 
+        <!-- Mostrar detalles del artículo -->
+        <section id="article-details" style="display:none;">
+            <h2>Detalles del Artículo</h2>
+            <p><strong>Título:</strong> <span id="article-title">Cargando...</span></p>
+            <p><strong>Autores:</strong> <span id="article-authors">Cargando...</span></p>
+            <p><strong>¿Está en Scopus?</strong> <span id="article-scopus">Cargando...</span></p>
+        </section>
+
         <button id="copiar-texto" class="boton-copiar">Copiar texto</button>
         <span id="mensaje-copiado" style="display:none;">Texto copiado!</span>
-
-        <!-- Eliminar este div para evitar duplicado -->
-        <!-- <div id="resultado"></div> -->
 
         <button id="btnDescargar" style="display: none;">Descargar en Word</button>
     </main>
