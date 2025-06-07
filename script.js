@@ -7,6 +7,12 @@ const copiarBoton = document.getElementById('copiar-texto');
 const mensajeCopiado = document.getElementById('mensaje-copiado');
 const downloadBtn = document.getElementById('btnDescargar');
 
+// Elementos para los detalles del artículo
+const articleDetailsSection = document.getElementById('article-details');
+const articleTitle = document.getElementById('article-title');
+const articleAuthors = document.getElementById('article-authors');
+const articleScopus = document.getElementById('article-scopus');
+
 // Mensajes dinámicos
 const message = document.getElementById('message');
 const instruction = document.getElementById('instruction');
@@ -23,6 +29,7 @@ function typeMessage() {
         typeInstruction();
     }
 }
+
 function typeInstruction() {
     let j = 0;
     function type() {
@@ -52,6 +59,7 @@ form.addEventListener('submit', async function (e) {
     estadoDelArteDiv.textContent = '';
     statusMessage.textContent = 'Procesando...';
     downloadBtn.style.display = 'none';
+    articleDetailsSection.style.display = 'none'; // Ocultar los detalles hasta recibir la respuesta
 
     const formData = new FormData();
     formData.append('file', pdfInput.files[0]);
@@ -68,10 +76,17 @@ form.addEventListener('submit', async function (e) {
             estadoDelArteDiv.textContent = `Error: ${data.error}`;
             statusMessage.textContent = '';
         } else {
+            // Mostrar el estado del arte generado
             estadoDelArteDiv.innerHTML = marked.parse(data.estado_del_arte || 'No se generó ningún estado del arte.');
             statusMessage.textContent = 'Listo';
 
-            // Mostrar botón de descarga
+            // Mostrar los detalles del artículo
+            articleTitle.textContent = data.title || 'Título no disponible';
+            articleAuthors.textContent = data.authors || 'Autor no disponible';
+            articleScopus.textContent = data.is_scopus || 'No disponible';
+            articleDetailsSection.style.display = 'block'; // Mostrar los detalles
+
+            // Mostrar el botón de descarga
             if (data.word_download_url) {
                 downloadBtn.style.display = 'block';
                 downloadBtn.onclick = () => {
