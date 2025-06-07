@@ -10,7 +10,9 @@ from docx import Document
 import uuid
 
 app = Flask(__name__)
-CORS(app)
+
+# Configuración de CORS para permitir solicitudes desde https://jofech20.github.io
+CORS(app, origins="https://jofech20.github.io")
 
 UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -152,3 +154,4 @@ def download_file(filename):
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+
