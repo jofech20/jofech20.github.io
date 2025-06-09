@@ -40,7 +40,7 @@ def extract_text_from_pdf(pdf_path):
                 page_text = page.extract_text()
                 if page_text:
                     text += page_text
-        print(f"Texto extraído del PDF: {text[:500]}...")  # Imprime los primeros 500 caracteres del texto extraído
+        print(f"Texto completo extraído del PDF: {text[:500]}...")  # Imprime los primeros 500 caracteres del texto extraído
         return text
     except Exception as e:
         print(f"Error al extraer texto del PDF: {e}")
@@ -101,6 +101,7 @@ def get_article_details(doi):
     headers = {'Accept': 'application/json', 'X-ELS-APIKey': API_KEY}
     
     response = requests.get(url, headers=headers)
+    print(response.json())  # Imprime la respuesta completa de la API para depuración
     
     if response.status_code == 200:
         data = response.json()
@@ -109,6 +110,7 @@ def get_article_details(doi):
         is_scopus = 'Yes' if 'scopus' in data.get('abstracts-retrieval-response', {}).get('entry', [{}])[0].get('prism:publicationName', '').lower() else 'No'
         return title, authors, is_scopus
     else:
+        print(f"Error en la API de Elsevier: {response.status_code}")
         return None, None, None
 
 @app.route('/upload_pdf', methods=['POST'])
@@ -160,5 +162,4 @@ def download_file(filename):
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
-
 
