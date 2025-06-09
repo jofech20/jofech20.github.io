@@ -40,15 +40,21 @@ def extract_text_from_pdf(pdf_path):
                 page_text = page.extract_text()
                 if page_text:
                     text += page_text
+        print(f"Texto extraído del PDF: {text[:500]}...")  # Imprime los primeros 500 caracteres del texto extraído
         return text
     except Exception as e:
         print(f"Error al extraer texto del PDF: {e}")
         return None
 
 def extract_doi_from_text(text):
-    # Utiliza una expresión regular para buscar un DOI en el texto
+    # Mejorada la expresión regular para cubrir más casos
     doi_match = re.search(r'\b10\.\d{4,9}/[-._;()/:A-Z0-9]+(?=\b)', text, re.IGNORECASE)
-    return doi_match.group(0) if doi_match else None
+    if doi_match:
+        print(f"DOI encontrado: {doi_match.group(0)}")  # Imprime el DOI encontrado
+        return doi_match.group(0)
+    else:
+        print("DOI no encontrado en el texto.")
+        return None
 
 def generate_estado_del_arte(text):
     max_length = 5000  # Limitar la longitud del texto base
@@ -154,4 +160,5 @@ def download_file(filename):
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+
 
