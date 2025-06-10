@@ -40,20 +40,22 @@ def extract_text_from_pdf(pdf_path):
                 page_text = page.extract_text()
                 if page_text:
                     text += page_text
-        print(f"Texto completo extraído del PDF: {text[:500]}...")  # Imprime los primeros 500 caracteres del texto extraído
+        print(f"Texto completo extraído del PDF: {text[:1000]}...")  # Muestra los primeros 1000 caracteres
         return text
     except Exception as e:
         print(f"Error al extraer texto del PDF: {e}")
         return None
 
 def extract_doi_from_text(text):
-    # Mejorada la expresión regular para cubrir más casos
-    doi_match = re.search(r'\b10\.\d{4,9}/[-._;()/:A-Z0-9]+(?=\b)', text, re.IGNORECASE)
+    # Expresión regular para encontrar el DOI en el formato más común
+    doi_match = re.search(r'\b10\.\d{4,9}/[-._;()/:A-Z0-9]+', text, re.IGNORECASE)
     if doi_match:
-        print(f"DOI encontrado: {doi_match.group(0)}")  # Imprime el DOI encontrado
-        return doi_match.group(0)
+        # Limpiar el DOI: quitar espacios adicionales o caracteres incorrectos
+        doi = doi_match.group(0).replace(' ', '').replace('-', '')
+        print(f"DOI encontrado: {doi}")  # Verifica el DOI encontrado
+        return doi
     else:
-        print("DOI no encontrado en el texto.")
+        print("No se encontró DOI en el texto.")
         return None
 
 def generate_estado_del_arte(text):
@@ -101,7 +103,7 @@ def get_article_details(doi):
     headers = {'Accept': 'application/json', 'X-ELS-APIKey': API_KEY}
     
     response = requests.get(url, headers=headers)
-    print(response.json())  # Imprime la respuesta completa de la API para depuración
+    print("Respuesta completa de la API:", response.json())  # Ver la respuesta completa de la API
     
     if response.status_code == 200:
         data = response.json()
@@ -127,10 +129,14 @@ def upload_pdf():
         pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(pdf_path)
 
+        print(f"Archivo recibido: {filename}")  # Verificar que el archivo se guardó correctamente
+
         extracted_text = extract_text_from_pdf(pdf_path)
 
         if not extracted_text:
             return jsonify({'error': 'No se pudo extraer texto del PDF.'}), 400
+
+        print(f"Texto extraído: {extracted_text[:1000]}")  # Muestra los primeros 1000 caracteres
 
         estado_del_arte = generate_estado_del_arte(extracted_text)
 
@@ -141,6 +147,8 @@ def upload_pdf():
         # Crear nombre único para el archivo Word
         word_filename = f"estado_arte_{uuid.uuid4().hex[:8]}.docx"
         word_path = save_to_word(estado_del_arte, word_filename)
+
+        print(f"Enviando detalles del artículo: Título - {title}, Autores - {authors}, Scopus - {is_scopus}")
 
         return jsonify({
             'estado_del_arte': estado_del_arte,
@@ -162,4 +170,3 @@ def download_file(filename):
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
-
