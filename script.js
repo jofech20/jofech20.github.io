@@ -51,7 +51,7 @@ pdfInput.addEventListener('change', function () {
     }
 });
 
-const apiUrl = 'https://jofech20-github-io.onrender.com/upload_pdf';
+const apiUrl = 'https://jofech20-github-io.onrender.com/upload_pdf';  // Asegúrate de que la URL sea la correcta
 
 form.addEventListener('submit', async function (e) {
     e.preventDefault();
@@ -65,12 +65,17 @@ form.addEventListener('submit', async function (e) {
     formData.append('file', pdfInput.files[0]);
 
     try {
+        console.log("Enviando archivo al servidor...");  // Verificar que el archivo se está enviando correctamente
+
         const response = await fetch(apiUrl, {
             method: 'POST',
             body: formData
         });
 
+        console.log("Respuesta recibida del servidor:", response);  // Depuración adicional
+
         const data = await response.json();
+        console.log("Respuesta de la API del servidor:", data);  // Verifica la respuesta completa
 
         if (data.error) {
             estadoDelArteDiv.textContent = `Error: ${data.error}`;
@@ -97,6 +102,7 @@ form.addEventListener('submit', async function (e) {
     } catch (error) {
         estadoDelArteDiv.textContent = 'Error al procesar la solicitud. Intenta nuevamente.';
         statusMessage.textContent = '';
+        console.error("Error al procesar la solicitud:", error);  // Mostrar el error detallado en consola
     }
 });
 
@@ -113,4 +119,3 @@ copiarBoton.addEventListener('click', function () {
         });
     }
 });
-
