@@ -10,23 +10,15 @@ from docx import Document
 import uuid
 
 app = Flask(__name__)
-
-# Configuración de CORS para permitir solicitudes desde https://jofech20.github.io
 CORS(app, origins="https://jofech20.github.io")
 
 UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 ALLOWED_EXTENSIONS = {'pdf'}
-
-# Inicializar cliente de OpenAI usando el nuevo SDK
 client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
-
-# Configura tu API Key de Elsevier usando la variable de entorno
-API_KEY = os.environ.get('ELSEVIER_API_KEY')  # Tomar la clave desde la variable de entorno
+API_KEY = os.environ.get('ELSEVIER_API_KEY')
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -40,87 +32,87 @@ def extract_text_from_pdf(pdf_path):
                 page_text = page.extract_text()
                 if page_text:
                     text += page_text
-        print(f"Texto completo extraído del PDF: {text[:1000]}...")  # Muestra los primeros 1000 caracteres del texto
+        print(f"Texto extraído del PDF: {text[:500]}...")
         return text
     except Exception as e:
-        print(f"Error al extraer texto del PDF: {e}")
+        print(f"Error al extraer texto: {e}")
         return None
 
 def extract_doi_from_text(text):
-    # Expresión regular para encontrar el DOI en el formato más común
-    doi_match = re.search(r'\b10\.\d{4,9}/[-._;()/:A-Z0-9]+', text, re.IGNORECASE)
-    if doi_match:
-        # Limpiar el DOI: quitar espacios adicionales o caracteres incorrectos
-        doi = doi_match.group(0).replace(' ', '').replace('-', '').split('RESEARCH')[0]  # Limpiar el sufijo "RESEARCH"
-        print(f"DOI encontrado: {doi}")  # Verifica el DOI encontrado
+    match = re.search(r'\b10\.\d{4,9}/[-._;()/:A-Z0-9]+', text, re.IGNORECASE)
+    if match:
+        doi = match.group(0).strip().replace(' ', '').split('RESEARCH')[0]
+        print(f"DOI encontrado: {doi}")
         return doi
-    else:
-        print("No se encontró DOI en el texto.")
-        return None
+    return None
 
 def generate_estado_del_arte(text):
-    max_length = 5000  # Limitar la longitud del texto base
-    truncated_text = text[:max_length] if len(text) > max_length else text
-
     prompt = f"""
-    Redacta un **estado del arte** a partir del siguiente texto de un artículo científico, siguiendo **estrictamente** esta estructura, con subtítulos en negrita usando Markdown (doble asterisco `**`):
+Redacta un **estado del arte** a partir del siguiente texto de un artículo científico, siguiendo **estrictamente** esta estructura, con subtítulos en negrita usando Markdown (doble asterisco `**`):
 
-    **Fase Inicial – Introducción contextual del tema**  
-    (Explica brevemente el contexto general del tema del artículo.)
+**Fase Inicial – Introducción contextual del tema**  
+(Explica brevemente el contexto general del tema del artículo.)
 
-    **Fase Analítica – Síntesis crítica y comparativa**  
-    (Compara hallazgos, enfoques o metodologías clave en la literatura.)
+**Fase Analítica – Síntesis crítica y comparativa**  
+(Compara hallazgos, enfoques o metodologías clave en la literatura.)
 
-    **Fase Final – Identificación de vacíos y proyecciones**  
-    (Señala lo que falta en la literatura y posibles líneas futuras de investigación.)
+**Fase Final – Identificación de vacíos y proyecciones**  
+(Señala lo que falta en la literatura y posibles líneas futuras de investigación.)
 
-    Texto base del artículo:
-    {truncated_text}
+Texto base del artículo:
+{text[:5000]}
     """
-    
+
     try:
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
-            max_tokens=1500,  # Reducir la cantidad de tokens de la respuesta
+            max_tokens=1500,
             temperature=0.7
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
-        return f"Error al generar el estado del arte: {str(e)}"
+        return f"Error al generar estado del arte: {str(e)}"
 
 def save_to_word(text, filename):
     doc = Document()
     for line in text.split('\n'):
         doc.add_paragraph(line)
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    doc.save(filepath)
-    return filepath
+    path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    doc.save(path)
+    return path
 
-# Función para obtener detalles del artículo desde Elsevier
 def get_article_details(doi):
     url = f"https://api.elsevier.com/content/article/doi/{doi}"
     headers = {'Accept': 'application/json', 'X-ELS-APIKey': API_KEY}
-    
+
     response = requests.get(url, headers=headers)
-    print("Respuesta completa de la API:", response.json())  # Ver la respuesta completa de la API
-    
-    if response.status_code == 200:
+    try:
         data = response.json()
+    except Exception as e:
+        print("Error parseando JSON:", e)
+        return {"title": "Título no disponible", "authors": "Autor no disponible", "is_scopus": "No"}
 
-coredata = data.get('full-text-retrieval-response', {}).get('coredata', {})
-title = coredata.get('dc:title', 'Título no disponible')
+    if response.status_code == 200:
+        entry = data.get('abstracts-retrieval-response', {}).get('coredata', {})
+        title = entry.get('dc:title', 'Título no disponible')
+        authors = entry.get('dc:creator', 'Autor no disponible')
+        publication = entry.get('prism:publicationName', '')
 
-# Extraer autores
-creators = coredata.get('dc:creator', [])
-if isinstance(creators, list):
-    authors = ', '.join([author.get('$') for author in creators])
-else:
-    authors = creators.get('$', 'Autor no disponible') if isinstance(creators, dict) else 'Autor no disponible'
+        is_scopus = 'Sí' if 'scopus' in publication.lower() else 'No'
 
-# Verificar si tiene scopus-id
-scopus_id = data.get('scopus-id')
-is_scopus = 'Sí' if scopus_id else 'No'
+        return {
+            "title": title,
+            "authors": authors,
+            "is_scopus": is_scopus
+        }
+    else:
+        print("Error en respuesta Elsevier:", response.status_code)
+        return {
+            "title": "Título no disponible",
+            "authors": "Autor no disponible",
+            "is_scopus": "No"
+        }
 
 @app.route('/upload_pdf', methods=['POST'])
 def upload_pdf():
@@ -128,53 +120,38 @@ def upload_pdf():
         return jsonify({'error': 'No se ha enviado ningún archivo'}), 400
 
     file = request.files['file']
-    if file.filename == '':
-        return jsonify({'error': 'No se ha seleccionado ningún archivo'}), 400
+    if file.filename == '' or not allowed_file(file.filename):
+        return jsonify({'error': 'Archivo inválido. Solo se permiten PDFs.'}), 400
 
-    if file and allowed_file(file.filename):
-        filename = secure_filename(file.filename)
-        pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        file.save(pdf_path)
+    filename = secure_filename(file.filename)
+    path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    file.save(path)
 
-        print(f"Archivo recibido: {filename}")  # Verificar que el archivo se guardó correctamente
+    texto = extract_text_from_pdf(path)
+    if not texto:
+        return jsonify({'error': 'No se pudo extraer texto del PDF.'}), 400
 
-        extracted_text = extract_text_from_pdf(pdf_path)
+    estado = generate_estado_del_arte(texto)
+    doi = extract_doi_from_text(texto) or "10.1016/j.default"
+    metadatos = get_article_details(doi)
 
-        if not extracted_text:
-            return jsonify({'error': 'No se pudo extraer texto del PDF.'}), 400
+    nombre_word = f"estado_arte_{uuid.uuid4().hex[:8]}.docx"
+    ruta_word = save_to_word(estado, nombre_word)
 
-        print(f"Texto extraído: {extracted_text[:1000]}")  # Muestra los primeros 1000 caracteres
-
-        estado_del_arte = generate_estado_del_arte(extracted_text)
-
-        # Extraer DOI del texto (esto es opcional y podría mejorarse)
-        doi = extract_doi_from_text(extracted_text) or "10.1016/j.articulo123"  # Usar un valor predeterminado si no se encuentra el DOI
-        title, authors, is_scopus = get_article_details(doi)
-
-        # Crear nombre único para el archivo Word
-        word_filename = f"estado_arte_{uuid.uuid4().hex[:8]}.docx"
-        word_path = save_to_word(estado_del_arte, word_filename)
-
-        print(f"Enviando detalles del artículo: Título - {title}, Autores - {authors}, Scopus - {is_scopus}")
-
-        return jsonify({
-            'estado_del_arte': estado_del_arte,
-            'word_download_url': f"/download/{word_filename}",
-            'title': title,
-            'authors': authors,
-            'is_scopus': is_scopus
-        }), 200
-
-    return jsonify({'error': 'Tipo de archivo no permitido. Solo se permiten archivos PDF.'}), 400
+    return jsonify({
+        "title": metadatos["title"],
+        "authors": metadatos["authors"],
+        "is_scopus": metadatos["is_scopus"],
+        "estado_del_arte": estado,
+        "word_download_url": f"/download/{nombre_word}"
+    }), 200
 
 @app.route('/download/<filename>', methods=['GET'])
 def download_file(filename):
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    if os.path.exists(filepath):
-        return send_file(filepath, as_attachment=True)
-    else:
-        return jsonify({'error': 'Archivo no encontrado.'}), 404
+    path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    if os.path.exists(path):
+        return send_file(path, as_attachment=True)
+    return jsonify({'error': 'Archivo no encontrado.'}), 404
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
-
