@@ -40,7 +40,7 @@ def extract_text_from_pdf(pdf_path):
                 page_text = page.extract_text()
                 if page_text:
                     text += page_text
-        print(f"Texto completo extraído del PDF: {text[:1000]}...")  # Muestra los primeros 1000 caracteres
+        print(f"Texto completo extraído del PDF: {text[:1000]}...")  # Muestra los primeros 1000 caracteres del texto
         return text
     except Exception as e:
         print(f"Error al extraer texto del PDF: {e}")
@@ -51,7 +51,7 @@ def extract_doi_from_text(text):
     doi_match = re.search(r'\b10\.\d{4,9}/[-._;()/:A-Z0-9]+', text, re.IGNORECASE)
     if doi_match:
         # Limpiar el DOI: quitar espacios adicionales o caracteres incorrectos
-        doi = doi_match.group(0).replace(' ', '').replace('-', '')
+        doi = doi_match.group(0).replace(' ', '').replace('-', '').split('RESEARCH')[0]  # Limpiar el sufijo "RESEARCH"
         print(f"DOI encontrado: {doi}")  # Verifica el DOI encontrado
         return doi
     else:
@@ -112,7 +112,7 @@ def get_article_details(doi):
         is_scopus = 'Yes' if 'scopus' in data.get('abstracts-retrieval-response', {}).get('entry', [{}])[0].get('prism:publicationName', '').lower() else 'No'
         return title, authors, is_scopus
     else:
-        print(f"Error en la API de Elsevier: {response.status_code}")
+        print(f"Error en la API de Elsevier: {response.status_code}, Mensaje: {response.json()}")
         return None, None, None
 
 @app.route('/upload_pdf', methods=['POST'])
@@ -170,3 +170,4 @@ def download_file(filename):
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+
