@@ -97,15 +97,14 @@ def get_article_details(doi):
         entry = data.get('abstracts-retrieval-response', {}).get('coredata', {})
         title = entry.get('dc:title', 'Título no disponible')
         authors = entry.get('dc:creator', 'Autor no disponible')
-        publication = entry.get('prism:publicationName', '')
+        scopus_id = entry.get('dc:identifier', '')
+        is_scopus = 'Sí' if 'SCOPUS' in scopus_id.upper() else 'No'
 
-       scopus_id = coredata.get('dc:identifier', '')
-is_scopus = 'Sí' if 'SCOPUS' in scopus_id.upper() else 'No'
-
-return {
-    "title": title or "Título no disponible",
-    "authors": authors or "Autor no disponible",
-    "is_scopus": is_scopus
+        return {
+            "title": title,
+            "authors": authors,
+            "is_scopus": is_scopus
+        }
     else:
         print("Error en respuesta Elsevier:", response.status_code)
         return {
@@ -113,7 +112,6 @@ return {
             "authors": "Autor no disponible",
             "is_scopus": "No"
         }
-
 @app.route('/upload_pdf', methods=['POST'])
 def upload_pdf():
     if 'file' not in request.files:
@@ -137,14 +135,18 @@ def upload_pdf():
 
     nombre_word = f"estado_arte_{uuid.uuid4().hex[:8]}.docx"
     ruta_word = save_to_word(estado, nombre_word)
+    title = metadatos["title"]
+    authors = metadatos["authors"]
+    is_scopus = metadatos["is_scopus"]
 
     return jsonify({
-        "title": title,
-        "authors": authors,
-        "is_scopus": is_scopus,
-        "estado_del_arte": estado_del_arte,
-        "word_download_url": f"/download/{word_filename}"
-    }), 200
+    "title": metadatos["title"],
+    "authors": metadatos["authors"],
+    "is_scopus": metadatos["is_scopus"],
+    "estado_del_arte": estado,
+    "word_download_url": f"/download/{nombre_word}"
+}), 200
+
 
 @app.route('/download/<filename>', methods=['GET'])
 def download_file(filename):
