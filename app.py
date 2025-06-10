@@ -107,13 +107,20 @@ def get_article_details(doi):
     
     if response.status_code == 200:
         data = response.json()
-        title = data.get('abstracts-retrieval-response', {}).get('entry', [{}])[0].get('dc:title', 'Título no disponible')
-        authors = data.get('abstracts-retrieval-response', {}).get('entry', [{}])[0].get('dc:creator', 'Autor no disponible')
-        is_scopus = 'Yes' if 'scopus' in data.get('abstracts-retrieval-response', {}).get('entry', [{}])[0].get('prism:publicationName', '').lower() else 'No'
-        return title, authors, is_scopus
-    else:
-        print(f"Error en la API de Elsevier: {response.status_code}, Mensaje: {response.json()}")
-        return None, None, None
+
+coredata = data.get('full-text-retrieval-response', {}).get('coredata', {})
+title = coredata.get('dc:title', 'Título no disponible')
+
+# Extraer autores
+creators = coredata.get('dc:creator', [])
+if isinstance(creators, list):
+    authors = ', '.join([author.get('$') for author in creators])
+else:
+    authors = creators.get('$', 'Autor no disponible') if isinstance(creators, dict) else 'Autor no disponible'
+
+# Verificar si tiene scopus-id
+scopus_id = data.get('scopus-id')
+is_scopus = 'Sí' if scopus_id else 'No'
 
 @app.route('/upload_pdf', methods=['POST'])
 def upload_pdf():
