@@ -85,10 +85,10 @@ def save_to_word(text, filename):
 def get_article_details(doi):
     url = f"https://api.elsevier.com/content/article/doi/{doi}"
     headers = {'Accept': 'application/json', 'X-ELS-APIKey': API_KEY}
-
     response = requests.get(url, headers=headers)
     try:
         data = response.json()
+        print("Respuesta completa de Elsevier:", data)
     except Exception as e:
         print("Error parseando JSON:", e)
         return {"title": "Título no disponible", "authors": "Autor no disponible", "is_scopus": "No"}
