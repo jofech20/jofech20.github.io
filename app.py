@@ -86,32 +86,38 @@ def get_article_details(doi):
     url = f"https://api.elsevier.com/content/article/doi/{doi}"
     headers = {'Accept': 'application/json', 'X-ELS-APIKey': API_KEY}
     response = requests.get(url, headers=headers)
+
     try:
         data = response.json()
         print("Respuesta completa de Elsevier:", data)
-    except Exception as e:
-        print("Error parseando JSON:", e)
-        return {"title": "Título no disponible", "authors": "Autor no disponible", "is_scopus": "No"}
 
-    if response.status_code == 200:
-        entry = data.get('abstracts-retrieval-response', {}).get('coredata', {})
-        title = entry.get('dc:title', 'Título no disponible')
-        authors = entry.get('dc:creator', 'Autor no disponible')
-        scopus_id = entry.get('dc:identifier', '')
-        is_scopus = 'Sí' if 'SCOPUS' in scopus_id.upper() else 'No'
+        coredata = data.get('full-text-retrieval-response', {}).get('coredata', {})
+        title = coredata.get('dc:title', 'Título no disponible')
+
+        # Lista de autores
+        authors_list = coredata.get('dc:creator', [])
+        if isinstance(authors_list, list):
+            authors = ', '.join(author.get('$', '') for author in authors_list)
+        else:
+            authors = authors_list.get('$', 'Autor no disponible')
+
+        # Si hay scopus-id, lo consideramos indexado
+        is_scopus = "Sí" if 'scopus-id' in data.get('full-text-retrieval-response', {}) else "No"
 
         return {
             "title": title,
             "authors": authors,
             "is_scopus": is_scopus
         }
-    else:
-        print("Error en respuesta Elsevier:", response.status_code)
+
+    except Exception as e:
+        print("Error parseando respuesta:", e)
         return {
             "title": "Título no disponible",
             "authors": "Autor no disponible",
             "is_scopus": "No"
         }
+
 @app.route('/upload_pdf', methods=['POST'])
 def upload_pdf():
     if 'file' not in request.files:
