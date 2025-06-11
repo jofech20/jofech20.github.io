@@ -21,9 +21,9 @@ ALLOWED_EXTENSIONS = {'pdf'}
 client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
 API_KEY = os.environ.get('ELSEVIER_API_KEY')
 
-# Carga el CSV de SCImago al iniciar la app
+# Carga el CSV de SCImago al iniciar la app (corregido)
 SCIMAGO_CSV = 'scimago.csv'
-scimago_df = pd.read_csv(SCIMAGO_CSV)
+scimago_df = pd.read_csv(SCIMAGO_CSV, on_bad_lines='skip')
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
