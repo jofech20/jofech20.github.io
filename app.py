@@ -1,6 +1,7 @@
 import os
 import re
 import requests
+import pandas as pd
 from openai import OpenAI
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
@@ -19,6 +20,10 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 ALLOWED_EXTENSIONS = {'pdf'}
 client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
 API_KEY = os.environ.get('ELSEVIER_API_KEY')
+
+# Carga el CSV de SCImago al iniciar la app
+SCIMAGO_CSV = 'scimago.csv'
+scimago_df = pd.read_csv(SCIMAGO_CSV)
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -81,6 +86,17 @@ def save_to_word(text, filename):
     doc.save(path)
     return path
 
+def get_scimago_quartile(journal_name):
+    try:
+        result = scimago_df[scimago_df['Title'].str.lower() == journal_name.lower()]
+        if not result.empty:
+            quartile = result.iloc[0]['Quartile']
+            return quartile
+        return "No encontrado"
+    except Exception as e:
+        print(f"Error buscando cuartil: {e}")
+        return "Error"
+
 def get_article_details(doi):
     url = f"https://api.elsevier.com/content/article/doi/{doi}"
     headers = {'Accept': 'application/json', 'X-ELS-APIKey': API_KEY}
@@ -88,43 +104,38 @@ def get_article_details(doi):
 
     try:
         data = response.json()
-        print("Respuesta completa de Elsevier:", data)
+        print("Respuesta Elsevier:", data)
 
         coredata = data.get('full-text-retrieval-response', {}).get('coredata', {})
-        title = coredata.get('dc:title', '')
-        authors_list = coredata.get('dc:creator', [])
+        title = coredata.get('dc:title', 'Título no disponible')
 
+        authors_list = coredata.get('dc:creator', [])
         if isinstance(authors_list, list):
             authors = ', '.join(author.get('$', '') for author in authors_list)
         else:
-            authors = authors_list.get('$', '')
+            authors = authors_list.get('$', 'Autor no disponible')
 
+        journal = coredata.get('prism:publicationName', 'Revista no disponible')
         is_scopus = "Sí" if 'scopus-id' in data.get('full-text-retrieval-response', {}) else "No"
+        quartile = get_scimago_quartile(journal)
 
         return {
             "title": title,
             "authors": authors,
-            "is_scopus": is_scopus
+            "journal": journal,
+            "is_scopus": is_scopus,
+            "quartile": quartile
         }
 
     except Exception as e:
-        print("Error parseando respuesta:", e)
-        return {"title": "", "authors": "", "is_scopus": "No"}
-
-def extraer_titulo_y_autores(texto):
-    lineas = texto.strip().split("\n")
-    titulo = ""
-    autores = ""
-
-    for i, linea in enumerate(lineas):
-        if 50 < len(linea) < 200 and not titulo:
-            titulo = linea.strip()
-            if i + 1 < len(lineas):
-                posibles_autores = lineas[i + 1].strip()
-                if 5 < len(posibles_autores) < 200:
-                    autores = posibles_autores
-            break
-    return titulo or "Título no disponible", autores or "Autores no disponibles"
+        print("Error procesando metadatos:", e)
+        return {
+            "title": "Título no disponible",
+            "authors": "Autor no disponible",
+            "journal": "Revista no disponible",
+            "is_scopus": "No",
+            "quartile": "No disponible"
+        }
 
 @app.route('/upload_pdf', methods=['POST'])
 def upload_pdf():
@@ -144,15 +155,8 @@ def upload_pdf():
         return jsonify({'error': 'No se pudo extraer texto del PDF.'}), 400
 
     estado = generate_estado_del_arte(texto)
-    doi = extract_doi_from_text(texto)
-    metadatos = get_article_details(doi) if doi else {"title": "", "authors": "", "is_scopus": "No"}
-
-    # Si no hay metadatos válidos desde Elsevier, extraer del texto
-    if not metadatos["title"] or not metadatos["authors"]:
-        titulo_alt, autores_alt = extraer_titulo_y_autores(texto)
-        metadatos["title"] = titulo_alt
-        metadatos["authors"] = autores_alt
-        metadatos["is_scopus"] = "Desconocido"
+    doi = extract_doi_from_text(texto) or "10.1016/j.default"
+    metadatos = get_article_details(doi)
 
     nombre_word = f"estado_arte_{uuid.uuid4().hex[:8]}.docx"
     ruta_word = save_to_word(estado, nombre_word)
@@ -160,7 +164,9 @@ def upload_pdf():
     return jsonify({
         "title": metadatos["title"],
         "authors": metadatos["authors"],
+        "journal": metadatos["journal"],
         "is_scopus": metadatos["is_scopus"],
+        "quartile": metadatos["quartile"],
         "estado_del_arte": estado,
         "word_download_url": f"/download/{nombre_word}"
     }), 200
