@@ -62,7 +62,6 @@ Redacta un **estado del arte** a partir del siguiente texto de un artículo cien
 Texto base del artículo:
 {text[:5000]}
     """
-
     try:
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
@@ -92,16 +91,14 @@ def get_article_details(doi):
         print("Respuesta completa de Elsevier:", data)
 
         coredata = data.get('full-text-retrieval-response', {}).get('coredata', {})
-        title = coredata.get('dc:title', 'Título no disponible')
-
-        # Lista de autores
+        title = coredata.get('dc:title', '')
         authors_list = coredata.get('dc:creator', [])
+
         if isinstance(authors_list, list):
             authors = ', '.join(author.get('$', '') for author in authors_list)
         else:
-            authors = authors_list.get('$', 'Autor no disponible')
+            authors = authors_list.get('$', '')
 
-        # Si hay scopus-id, lo consideramos indexado
         is_scopus = "Sí" if 'scopus-id' in data.get('full-text-retrieval-response', {}) else "No"
 
         return {
@@ -112,11 +109,22 @@ def get_article_details(doi):
 
     except Exception as e:
         print("Error parseando respuesta:", e)
-        return {
-            "title": "Título no disponible",
-            "authors": "Autor no disponible",
-            "is_scopus": "No"
-        }
+        return {"title": "", "authors": "", "is_scopus": "No"}
+
+def extraer_titulo_y_autores(texto):
+    lineas = texto.strip().split("\n")
+    titulo = ""
+    autores = ""
+
+    for i, linea in enumerate(lineas):
+        if 50 < len(linea) < 200 and not titulo:
+            titulo = linea.strip()
+            if i + 1 < len(lineas):
+                posibles_autores = lineas[i + 1].strip()
+                if 5 < len(posibles_autores) < 200:
+                    autores = posibles_autores
+            break
+    return titulo or "Título no disponible", autores or "Autores no disponibles"
 
 @app.route('/upload_pdf', methods=['POST'])
 def upload_pdf():
@@ -136,23 +144,26 @@ def upload_pdf():
         return jsonify({'error': 'No se pudo extraer texto del PDF.'}), 400
 
     estado = generate_estado_del_arte(texto)
-    doi = extract_doi_from_text(texto) or "10.1016/j.default"
-    metadatos = get_article_details(doi)
+    doi = extract_doi_from_text(texto)
+    metadatos = get_article_details(doi) if doi else {"title": "", "authors": "", "is_scopus": "No"}
+
+    # Si no hay metadatos válidos desde Elsevier, extraer del texto
+    if not metadatos["title"] or not metadatos["authors"]:
+        titulo_alt, autores_alt = extraer_titulo_y_autores(texto)
+        metadatos["title"] = titulo_alt
+        metadatos["authors"] = autores_alt
+        metadatos["is_scopus"] = "Desconocido"
 
     nombre_word = f"estado_arte_{uuid.uuid4().hex[:8]}.docx"
     ruta_word = save_to_word(estado, nombre_word)
-    title = metadatos["title"]
-    authors = metadatos["authors"]
-    is_scopus = metadatos["is_scopus"]
 
     return jsonify({
-    "title": metadatos["title"],
-    "authors": metadatos["authors"],
-    "is_scopus": metadatos["is_scopus"],
-    "estado_del_arte": estado,
-    "word_download_url": f"/download/{nombre_word}"
-}), 200
-
+        "title": metadatos["title"],
+        "authors": metadatos["authors"],
+        "is_scopus": metadatos["is_scopus"],
+        "estado_del_arte": estado,
+        "word_download_url": f"/download/{nombre_word}"
+    }), 200
 
 @app.route('/download/<filename>', methods=['GET'])
 def download_file(filename):
