@@ -93,6 +93,14 @@ form.addEventListener('submit', async function (e) {
             articleScopus.textContent = data.is_scopus || 'No disponible';
             articleJournal.textContent = data.journal || 'Revista no disponible';
             articleQuartile.textContent = data.quartile || 'No disponible';
+            
+            // Mostrar la entropía si está disponible
+            const entropiaDiv = document.getElementById('entropia-estado-del-arte');
+            if (data.entropia_estado_del_arte !== undefined) {
+                entropiaDiv.textContent = `Entropía del estado del arte: ${data.entropia_estado_del_arte.toFixed(4)}`;
+            } else {
+                entropiaDiv.textContent = '';
+            }
 
             articleDetailsSection.style.display = 'block'; // Mostrar los detalles
 
