@@ -9,6 +9,10 @@ from werkzeug.utils import secure_filename
 import PyPDF2
 from docx import Document
 import uuid
+import math
+from collections import Counter
+
+
 
 app = Flask(__name__)
 CORS(app, origins="https://jofech20.github.io")
@@ -136,6 +140,15 @@ def get_article_details(doi):
             "is_scopus": "No",
             "quartile": "No disponible"
         }
+def calcular_entropia(texto):
+    palabras = texto.split()
+    total = len(palabras)
+    if total == 0:
+        return 0.0
+    frecuencias = Counter(palabras)
+    probabilidades = [f / total for f in frecuencias.values()]
+    entropia = -sum(p * math.log2(p) for p in probabilidades)
+    return round(entropia, 4)
 
 @app.route('/upload_pdf', methods=['POST'])
 def upload_pdf():
@@ -155,6 +168,7 @@ def upload_pdf():
         return jsonify({'error': 'No se pudo extraer texto del PDF.'}), 400
 
     estado = generate_estado_del_arte(texto)
+    entropia = calcular_entropia(estado)
     doi = extract_doi_from_text(texto) or "10.1016/j.default"
     metadatos = get_article_details(doi)
 
@@ -168,6 +182,7 @@ def upload_pdf():
         "is_scopus": metadatos["is_scopus"],
         "quartile": metadatos["quartile"],
         "estado_del_arte": estado,
+        "entropia_estado_del_arte": entropia,
         "word_download_url": f"/download/{nombre_word}"
     }), 200
 
