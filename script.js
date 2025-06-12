@@ -12,6 +12,8 @@ const articleDetailsSection = document.getElementById('article-details');
 const articleTitle = document.getElementById('article-title');
 const articleAuthors = document.getElementById('article-authors');
 const articleScopus = document.getElementById('article-scopus');
+const articleJournal = document.getElementById('article-journal');
+const articleQuartile = document.getElementById('article-quartile');
 
 // Mensajes dinámicos
 const message = document.getElementById('message');
@@ -89,6 +91,9 @@ form.addEventListener('submit', async function (e) {
             articleTitle.textContent = data.title || 'Título no disponible';
             articleAuthors.textContent = data.authors || 'Autor no disponible';
             articleScopus.textContent = data.is_scopus || 'No disponible';
+            articleJournal.textContent = data.journal || 'Revista no disponible';
+            articleQuartile.textContent = data.quartile || 'No disponible';
+
             articleDetailsSection.style.display = 'block'; // Mostrar los detalles
 
             // Mostrar el botón de descarga
