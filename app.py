@@ -88,16 +88,32 @@ def save_to_word(text, filename):
     doc.save(path)
     return path
 
-def get_scimago_quartile(journal_name):
+def get_scimago_info(journal_name):
     try:
         result = scimago_df[scimago_df['Title'].str.lower() == journal_name.lower()]
         if not result.empty:
-            quartile = result.iloc[0]['Quartile']
-            return quartile
-        return "No encontrado"
+            row = result.iloc[0]
+            return {
+                "quartile": row['Quartile'],
+                "country": row['Country'],
+                "subject_area": row['Areas'],
+                "subject_category": row['Categories']
+            }
+        return {
+            "quartile": "No encontrado",
+            "country": "No disponible",
+            "subject_area": "No disponible",
+            "subject_category": "No disponible"
+        }
     except Exception as e:
-        print(f"Error buscando cuartil: {e}")
-        return "Error"
+        print(f"Error buscando info SCImago: {e}")
+        return {
+            "quartile": "Error",
+            "country": "Error",
+            "subject_area": "Error",
+            "subject_category": "Error"
+        }
+
 
 def get_article_details(doi):
     url = f"https://api.elsevier.com/content/article/doi/{doi}"
@@ -123,14 +139,17 @@ def get_article_details(doi):
 
         journal = coredata.get('prism:publicationName', 'Revista no disponible')
         is_scopus = "Sí" if 'scopus-id' in data.get('full-text-retrieval-response', {}) else "No"
-        quartile = get_scimago_quartile(journal)
+        scimago_info = get_scimago_info(journal)
 
         return {
             "title": title,
             "authors": authors,
             "journal": journal,
             "is_scopus": is_scopus,
-            "quartile": quartile
+            "quartile": scimago_info["quartile"],
+            "country": scimago_info["country"],
+            "subject_area": scimago_info["subject_area"],
+            "subject_category": scimago_info["subject_category"]
         }
 
     except Exception as e:
@@ -173,15 +192,19 @@ def upload_pdf():
     ruta_word = save_to_word(estado, nombre_word)
 
     return jsonify({
-        "title": metadatos["title"],
-        "authors": metadatos["authors"],
-        "journal": metadatos["journal"],
-        "is_scopus": metadatos["is_scopus"],
-        "quartile": metadatos["quartile"],
-        "estado_del_arte": estado,
-        "entropia_estado_del_arte": entropia,
-        "word_download_url": f"https://jofech20-github-io.onrender.com/download/{nombre_word}"
-    }), 200
+    "title": metadatos["title"],
+    "authors": metadatos["authors"],
+    "journal": metadatos["journal"],
+    "is_scopus": metadatos["is_scopus"],
+    "quartile": metadatos["quartile"],
+    "country": metadatos["country"],
+    "subject_area": metadatos["subject_area"],
+    "subject_category": metadatos["subject_category"],
+    "estado_del_arte": estado,
+    "entropia_estado_del_arte": entropia,
+    "word_download_url": f"https://jofech20-github-io.onrender.com/download/{nombre_word}"
+}), 200
+
 
 @app.route('/download/<filename>', methods=['GET'])
 def download_file(filename):
@@ -207,8 +230,11 @@ def get_crossref_metadata(doi):
                 "title": title,
                 "authors": authors,
                 "journal": journal,
-                "is_scopus": "No disponible",
-                "quartile": quartile
+                "is_scopus": is_scopus,
+                "quartile": scimago_info["quartile"],
+                "country": scimago_info["country"],
+                "subject_area": scimago_info["subject_area"],
+                "subject_category": scimago_info["subject_category"]
             }
         else:
             print("DOI no encontrado en Crossref")
