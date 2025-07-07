@@ -12,8 +12,6 @@ import uuid
 import math
 from collections import Counter
 
-
-
 app = Flask(__name__)
 CORS(app, origins="https://jofech20.github.io")
 
@@ -111,7 +109,11 @@ def get_article_details(doi):
         print("Respuesta Elsevier:", data)
 
         coredata = data.get('full-text-retrieval-response', {}).get('coredata', {})
-        title = coredata.get('dc:title', 'Título no disponible')
+        title = coredata.get('dc:title')
+
+        if not title:
+            print("Elsevier no tiene el recurso, usando Crossref...")
+            return get_crossref_metadata(doi)
 
         authors_list = coredata.get('dc:creator', [])
         if isinstance(authors_list, list):
@@ -132,14 +134,9 @@ def get_article_details(doi):
         }
 
     except Exception as e:
-        print("Error procesando metadatos:", e)
-        return {
-            "title": "Título no disponible",
-            "authors": "Autor no disponible",
-            "journal": "Revista no disponible",
-            "is_scopus": "No",
-            "quartile": "No disponible"
-        }
+        print("Error procesando metadatos Elsevier:", e)
+        return get_crossref_metadata(doi)
+
 def calcular_entropia(texto):
     palabras = texto.split()
     total = len(palabras)
@@ -195,3 +192,27 @@ def download_file(filename):
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+
+def get_crossref_metadata(doi):
+    try:
+        url = f"https://api.crossref.org/works/{doi}"
+        response = requests.get(url, timeout=10)
+        if response.status_code == 200:
+            data = response.json()['message']
+            title = data.get('title', ['Título no disponible'])[0]
+            authors = ', '.join([f"{a.get('given', '')} {a.get('family', '')}" for a in data.get('author', [])])
+            journal = data.get('container-title', ['Revista no disponible'])[0]
+            quartile = get_scimago_quartile(journal)
+            return {
+                "title": title,
+                "authors": authors,
+                "journal": journal,
+                "is_scopus": "No disponible",
+                "quartile": quartile
+            }
+        else:
+            print("DOI no encontrado en Crossref")
+            return None
+    except Exception as e:
+        print(f"Error en Crossref: {e}")
+        return None
