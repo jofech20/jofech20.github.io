@@ -14,6 +14,9 @@ const articleAuthors = document.getElementById('article-authors');
 const articleScopus = document.getElementById('article-scopus');
 const articleJournal = document.getElementById('article-journal');
 const articleQuartile = document.getElementById('article-quartile');
+const articleCountry = document.getElementById('article-country');
+const articleArea = document.getElementById('article-area');
+const articleCategory = document.getElementById('article-category');
 
 // Mensajes dinámicos
 const message = document.getElementById('message');
@@ -93,7 +96,10 @@ form.addEventListener('submit', async function (e) {
             articleScopus.textContent = data.is_scopus || 'No disponible';
             articleJournal.textContent = data.journal || 'Revista no disponible';
             articleQuartile.textContent = data.quartile || 'No disponible';
-            
+            articleCountry.textContent = data.country || 'No disponible';
+            articleArea.textContent = data.subject_area || 'No disponible';
+            articleCategory.textContent = data.subject_category || 'No disponible';
+
             // Mostrar la entropía si está disponible
             const entropiaDiv = document.getElementById('entropia-estado-del-arte');
             if (data.entropia_estado_del_arte !== undefined) {
