@@ -23,7 +23,6 @@ ALLOWED_EXTENSIONS = {'pdf'}
 client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
 API_KEY = os.environ.get('ELSEVIER_API_KEY')
 
-# Carga el CSV de SCImago al iniciar la app (corregido)
 SCIMAGO_CSV = 'scimago.csv'
 scimago_df = pd.read_csv(SCIMAGO_CSV, sep=';', on_bad_lines='skip')
 
@@ -114,6 +113,32 @@ def get_scimago_info(journal_name):
             "subject_category": "Error"
         }
 
+def get_crossref_metadata(doi):
+    try:
+        url = f"https://api.crossref.org/works/{doi}"
+        response = requests.get(url, timeout=10)
+        if response.status_code == 200:
+            data = response.json()['message']
+            title = data.get('title', ['Título no disponible'])[0]
+            authors = ', '.join([f"{a.get('given', '')} {a.get('family', '')}" for a in data.get('author', [])])
+            journal = data.get('container-title', ['Revista no disponible'])[0]
+            scimago_info = get_scimago_info(journal)
+            return {
+                "title": title,
+                "authors": authors,
+                "journal": journal,
+                "is_scopus": "No disponible",
+                "quartile": scimago_info["quartile"],
+                "country": scimago_info["country"],
+                "subject_area": scimago_info["subject_area"],
+                "subject_category": scimago_info["subject_category"]
+            }
+        else:
+            print("DOI no encontrado en Crossref")
+            return None
+    except Exception as e:
+        print(f"Error en Crossref: {e}")
+        return None
 
 def get_article_details(doi):
     url = f"https://api.elsevier.com/content/article/doi/{doi}"
@@ -188,23 +213,25 @@ def upload_pdf():
     doi = extract_doi_from_text(texto) or "10.1016/j.default"
     metadatos = get_article_details(doi)
 
+    if metadatos is None:
+        return jsonify({'error': 'No se pudo obtener metadatos del artículo.'}), 500
+
     nombre_word = f"estado_arte_{uuid.uuid4().hex[:8]}.docx"
     ruta_word = save_to_word(estado, nombre_word)
 
     return jsonify({
-    "title": metadatos["title"],
-    "authors": metadatos["authors"],
-    "journal": metadatos["journal"],
-    "is_scopus": metadatos["is_scopus"],
-    "quartile": metadatos["quartile"],
-    "country": metadatos["country"],
-    "subject_area": metadatos["subject_area"],
-    "subject_category": metadatos["subject_category"],
-    "estado_del_arte": estado,
-    "entropia_estado_del_arte": entropia,
-    "word_download_url": f"https://jofech20-github-io.onrender.com/download/{nombre_word}"
-}), 200
-
+        "title": metadatos["title"],
+        "authors": metadatos["authors"],
+        "journal": metadatos["journal"],
+        "is_scopus": metadatos["is_scopus"],
+        "quartile": metadatos["quartile"],
+        "country": metadatos["country"],
+        "subject_area": metadatos["subject_area"],
+        "subject_category": metadatos["subject_category"],
+        "estado_del_arte": estado,
+        "entropia_estado_del_arte": entropia,
+        "word_download_url": f"https://jofech20-github-io.onrender.com/download/{nombre_word}"
+    }), 200
 
 @app.route('/download/<filename>', methods=['GET'])
 def download_file(filename):
@@ -216,29 +243,3 @@ def download_file(filename):
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
 
-def get_crossref_metadata(doi):
-    try:
-        url = f"https://api.crossref.org/works/{doi}"
-        response = requests.get(url, timeout=10)
-        if response.status_code == 200:
-            data = response.json()['message']
-            title = data.get('title', ['Título no disponible'])[0]
-            authors = ', '.join([f"{a.get('given', '')} {a.get('family', '')}" for a in data.get('author', [])])
-            journal = data.get('container-title', ['Revista no disponible'])[0]
-            quartile = get_scimago_quartile(journal)
-            return {
-                "title": title,
-                "authors": authors,
-                "journal": journal,
-                "is_scopus": is_scopus,
-                "quartile": scimago_info["quartile"],
-                "country": scimago_info["country"],
-                "subject_area": scimago_info["subject_area"],
-                "subject_category": scimago_info["subject_category"]
-            }
-        else:
-            print("DOI no encontrado en Crossref")
-            return None
-    except Exception as e:
-        print(f"Error en Crossref: {e}")
-        return None
