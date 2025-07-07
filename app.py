@@ -54,16 +54,22 @@ def extract_doi_from_text(text):
 
 def generate_estado_del_arte(text):
     prompt = f"""
-Redacta un **estado del arte** a partir del siguiente texto de un artículo científico, siguiendo **estrictamente** esta estructura, con subtítulos en negrita usando Markdown (doble asterisco `**`):
+Redacta un **estado del arte** en estilo académico y científico, siguiendo estas indicaciones:
 
-**Fase Inicial – Introducción contextual del tema**  
-(Explica brevemente el contexto general del tema del artículo.)
+1. Usa un lenguaje claro, objetivo y formal.
+2. Estructura el texto con los siguientes subtítulos en negrita usando Markdown:
 
-**Fase Analítica – Síntesis crítica y comparativa**  
-(Compara hallazgos, enfoques o metodologías clave en la literatura.)
+**Antecedentes del problema**  
+(Describe el conocimiento previo sobre el tema, incluyendo enfoques, modelos, teorías o resultados clave que sustentan la investigación.)
 
-**Fase Final – Identificación de vacíos y proyecciones**  
-(Señala lo que falta en la literatura y posibles líneas futuras de investigación.)
+**Brechas y vacíos identificados**  
+(Indica los aspectos que no han sido resueltos por la literatura previa, limitaciones metodológicas o contradicciones teóricas existentes.)
+
+**Proyección y aporte del artículo analizado**  
+(Explica cómo este trabajo contribuye a cerrar brechas previas, qué propone o innova respecto a investigaciones anteriores, y cuál es su valor dentro del campo académico.)
+
+3. Evita repetir el resumen del artículo. Analiza el contexto y redacta desde una perspectiva crítica y sintética.
+4. Si es posible, alude a investigaciones mencionadas en el articulo usando frases como “estudios recientes muestran...”, “otros autores han señalado...”, “según la literatura...”. Pero todo según a las citas o referencias que hace el articulo.
 
 Texto base del artículo:
 {text[:5000]}
