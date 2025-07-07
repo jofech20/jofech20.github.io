@@ -183,7 +183,7 @@ def upload_pdf():
         "quartile": metadatos["quartile"],
         "estado_del_arte": estado,
         "entropia_estado_del_arte": entropia,
-        "word_download_url": f"https://https://jofech20-github-io.onrender.com/download/{nombre_word}"
+        "word_download_url": f"https://jofech20-github-io.onrender.com/download/{nombre_word}"
     }), 200
 
 @app.route('/download/<filename>', methods=['GET'])
