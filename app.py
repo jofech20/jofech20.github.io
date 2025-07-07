@@ -85,10 +85,29 @@ Texto base del artículo:
     except Exception as e:
         return f"Error al generar estado del arte: {str(e)}"
 
-def save_to_word(text, filename):
+def save_to_word(estado_arte_texto, filename, metadatos, entropia):
     doc = Document()
-    for line in text.split('\n'):
+
+    # Título del documento
+    doc.add_heading("Estado del Arte", level=1)
+
+    # Detalles del artículo
+    doc.add_paragraph(f"Título del artículo: {metadatos.get('title', 'No disponible')}")
+    doc.add_paragraph(f"Autores: {metadatos.get('authors', 'No disponible')}")
+    doc.add_paragraph(f"Revista: {metadatos.get('journal', 'No disponible')}")
+    doc.add_paragraph(f"Indexado en Scopus: {metadatos.get('is_scopus', 'No disponible')}")
+    doc.add_paragraph(f"Cuartil SCImago: {metadatos.get('quartile', 'No disponible')}")
+    doc.add_paragraph(f"País: {metadatos.get('country', 'No disponible')}")
+    doc.add_paragraph(f"Área temática: {metadatos.get('subject_area', 'No disponible')}")
+    doc.add_paragraph(f"Categoría temática: {metadatos.get('subject_category', 'No disponible')}")
+    doc.add_paragraph(f"Entropía del texto generado: {entropia}")
+    doc.add_paragraph()  # Espacio en blanco
+
+    # Contenido del estado del arte
+    doc.add_heading("Texto generado", level=2)
+    for line in estado_arte_texto.split('\n'):
         doc.add_paragraph(line)
+
     path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     doc.save(path)
     return path
@@ -223,7 +242,7 @@ def upload_pdf():
         return jsonify({'error': 'No se pudo obtener metadatos del artículo.'}), 500
 
     nombre_word = f"estado_arte_{uuid.uuid4().hex[:8]}.docx"
-    ruta_word = save_to_word(estado, nombre_word)
+    ruta_word = save_to_word(estado, nombre_word, metadatos, entropia)
 
     return jsonify({
         "title": metadatos["title"],
