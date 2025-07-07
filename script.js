@@ -63,6 +63,7 @@ form.addEventListener('submit', async function (e) {
 
     estadoDelArteDiv.textContent = '';
     statusMessage.textContent = 'Procesando...';
+    document.getElementById('entropia-estado-del-arte').textContent = '';
     downloadBtn.style.display = 'none';
     articleDetailsSection.style.display = 'none'; // Ocultar los detalles hasta recibir la respuesta
 
